@@ -1,0 +1,35 @@
+version: "3"
+
+services:
+  app:
+    image: python:3.11-slim-bullseye
+    container_name: stonkstats_app
+    environment:
+      - API_KEY=${API_KEY}
+    ports:
+      - 5000:5000
+      - 8050:8050
+    volumes:
+      - app:/stonkstats
+    depends_on:
+      - cache
+    tty: true
+
+  cache:
+    image: redis:alpine
+    container_name: stonkstats_cache
+    ports:
+      - 6379:6379
+    volumes:
+      - cache:/data
+
+volumes:
+  app:
+    name: stonkstats_app
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}
+      o: bind
+  cache:
+    name: stonkstats_cache
