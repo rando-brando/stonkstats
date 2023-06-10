@@ -7,21 +7,12 @@ services:
     environment:
       - FMP_API_KEY=${FMP_API_KEY}
     ports:
-      - 5000:5000
       - 8050:8050
     volumes:
       - app:/stonkstats
     depends_on:
       - cache
     tty: true
-
-  cache:
-    image: redis:alpine
-    container_name: stonkstats_cache
-    ports:
-      - 6379:6379
-    volumes:
-      - cache:/data
 
 volumes:
   app:
@@ -31,5 +22,3 @@ volumes:
       type: none
       device: ${PWD}
       o: bind
-  cache:
-    name: stonkstats_cache
