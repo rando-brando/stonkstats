@@ -1,0 +1,24 @@
+.stonk-chart {
+    border: 2px solid gray;
+    border-radius: 15px;
+    margin-left: 20px;
+    margin-right: 20px;
+}
+
+.search-container {
+    width: 30%;
+}
+
+.search-table-active {
+    display: table;
+    position: absolute; 
+    z-index: 10;
+}
+
+.search-table-inactive: {
+    display: none;
+}
+
+.search-row {
+    width : 100%;
+}
