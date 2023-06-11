@@ -10,8 +10,6 @@ services:
       - 8050:8050
     volumes:
       - app:/stonkstats
-    depends_on:
-      - cache
     tty: true
 
 volumes:
