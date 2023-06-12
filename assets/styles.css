@@ -10,6 +10,7 @@
 }
 
 .search-table-active {
+    width: 30%;
     display: table;
     position: absolute; 
     z-index: 10;
