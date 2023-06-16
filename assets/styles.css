@@ -9,17 +9,19 @@
     width: 30%;
 }
 
-.search-table-active {
+.search-table {
     width: 30%;
     display: table;
     position: absolute; 
     z-index: 10;
 }
 
-.search-table-inactive: {
-    display: none;
-}
-
 .search-row {
     width : 100%;
+}
+
+.exchange {
+    color: gray;
+    text-align: right;
+    font-style: italic;
 }
