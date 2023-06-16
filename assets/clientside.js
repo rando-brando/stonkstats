@@ -1,7 +1,7 @@
 window.dash_clientside = Object.assign({}, window.dash_clientside, {
     clientside: {
-        reactive_search: function(query, data) {
-            if(query) {
+        suggest_options: function(query, data) {
+            if (query) {
                 var df = JSON.parse(data)
                 var filteredData = df.filter(function(row) {
                     var search = query.toLowerCase()
@@ -11,11 +11,12 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
                         return row;
                     }
                 })
-                var rows = filteredData.map(function(row) {
+                var rows = filteredData.slice(0,8).map((row, index) => {
                     return {
                         'type': 'Tr',
                         'namespace': 'dash_html_components',
                         'props': {
+                            'id': {'index': `result-${index}`, 'type': 'search-row'},
                             'class': 'search-row',
                             'children': [
                                 {
@@ -46,20 +47,21 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
                         }
                     }
                 })
-                return {
-                    'type': 'Tbody',
-                    'namespace': 'dash_html_components',
-                    'props': {
-                        'class': 'search-table-active',
-                        'children': rows
+                return rows
+            }
+        },
+        select_option: function(clicks, rows) {
+            no_update = window.dash_clientside.no_update
+            if (rows) {
+                for (const [index, row] of rows.entries()) {
+                    if (typeof clicks[index] === 'number') {
+                        if(clicks[index] > 0) {
+                            return [row[0], null]
+                        }
                     }
                 }
             }
-            return {
-                'type': 'Tbody',
-                'namespace': 'dash_html_components',
-                'props': {'class': 'search-table-inactive'}
-            }
+            return [no_update, no_update]
         }
     }
 });
