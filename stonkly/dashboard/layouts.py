@@ -9,7 +9,7 @@ date_selector = [
 ]
 date_selector.append({'label': 'ALL', 'step': 'all'})
 
-stock_chart_layout = {
+graph_layout = {
     'height': 1000,
     'template': 'plotly_dark',
     'font_color': 'gray',
