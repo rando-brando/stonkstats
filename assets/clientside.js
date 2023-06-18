@@ -56,7 +56,7 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
                 for (const [index, row] of rows.entries()) {
                     if (typeof clicks[index] === 'number') {
                         if(clicks[index] > 0) {
-                            return [row[0], null]
+                            return [row[0].props.children, null]
                         }
                     }
                 }
