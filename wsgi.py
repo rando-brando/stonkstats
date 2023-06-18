@@ -1,23 +1,11 @@
-from dash import Dash, dcc, html, Output, Input, State, ClientsideFunction, ALL, Patch
+from dash import Dash, dcc, html, Output, Input, State
+from dash import ClientsideFunction, ALL
 import dash_bootstrap_components as dbc
-import plotly.graph_objs as go
-from stonkly.data.fmp import FMP
-import stonkly.dashboard.layouts as sdl
-import pandas as pd
-import os
-import json
-import asyncio
+import stonkly.data.prep as prep
+import yahooquery as yq
 
-FMP_API_KEY = os.getenv('FMP_API_KEY')
-fmp = FMP(FMP_API_KEY)
-
-#symbols = fmp.stock_screener({'exchange': 'NYSE,AMEX,NASDAQ'})
-symbols = json.dumps([
-    {"symbol": "AAPL", "companyName": "Apple", "exchangeShortName": "NASDAQ"},
-    {"symbol": "MSFT", "companyName": "Microsoft", "exchangeShortName": "NASDAQ"},
-    {"symbol": "AMZN", "companyName": "Amazon", "exchangeShortName": "NASDAQ"},
-    {"symbol": "PARA", "companyName": "Paramount", "exchangeShortName": "NYSE"}
-])
+fmp = prep.fmp()
+symbols = prep.symbols()
 
 app = Dash(__name__, external_stylesheets=[dbc.themes.SLATE])
 
@@ -77,9 +65,9 @@ app.layout = html.Div(
                 ),
                 dbc.Tabs(
                     id='content-tabs',
-                    active_tab='chart-tab',
+                    active_tab='graph-tab',
                     children=[
-                        dbc.Tab(tab_id='chart-tab', label='Chart'),
+                        dbc.Tab(tab_id='graph-tab', label='Graph'),
                         dbc.Tab(tab_id='stats-tab', label='Stats'),
                         dbc.Tab(tab_id='screener-tab', label='Screener')
                     ],
@@ -90,6 +78,7 @@ app.layout = html.Div(
     ]
 )
 
+
 app.clientside_callback(
     ClientsideFunction(
         namespace='clientside',
@@ -99,6 +88,7 @@ app.clientside_callback(
     Input('search-input', 'value'),
     State('search-options', 'data')
 )
+
 
 app.clientside_callback(
     ClientsideFunction(
@@ -111,6 +101,7 @@ app.clientside_callback(
     State({'index': ALL, 'type': 'search-row'}, 'children')
 )
 
+
 @app.callback(
     Output('price-data', 'data'),
     Output('earnings-data', 'data'),
@@ -121,102 +112,23 @@ def update_data(symbol):
     earnings = fmp.earnings_surprises(symbol)
     return [price, earnings]
 
+
 @app.callback(
     Output('tab-content', 'children'),
     Input('price-data', 'modified_timestamp'),
     State('price-data', 'data'),
     State('earnings-data', 'data')
 )
-def update_content(_, price, earnings):
-    if price:
-        # compute sma200
-        price = pd.DataFrame(price)
-        sma200 = price['close'].rolling(200).mean().shift(-200)
-        price = price.assign(sma200=sma200).head(7305)
-        # compute pe line
-        earnings = pd.DataFrame(earnings)
-        peline = 15 * earnings['actualEarningResult'].rolling(4).sum().shift(-4)
-        earnings = earnings.assign(peline=peline).head(80)
-        # update stonk layout
-        layout = sdl.stock_chart_layout
-        layout['xaxis']['range'] = [
-            price.date.min(skipna=True), 
-            price.date.max(skipna=True)]
-        layout['yaxis']['range'] = [
-            price.close.min(skipna=True),
-            price.close.max(skipna=True)]
-        fig = go.Figure(
-            layout=layout,
-            data = [
-                go.Scatter(
-                    x=price.date,
-                    y=price.close,
-                    mode='lines',
-                    name='Close'
-                ),
-                go.Scatter(
-                    x=price.date,
-                    y=price.sma,
-                    mode='lines',
-                    name='50d MA',
-                    line_width=3
-                ),
-                go.Scatter(
-                    x=price.date,
-                    y=price.sma200,
-                    mode='lines',
-                    name='200d MA',
-                    line_width=3
-                ),
-                go.Scatter(
-                    x=earnings.date,
-                    y=earnings.peline,
-                    mode='lines',
-                    name='PE Line',
-                    fill='tozeroy',
-                    line_width=3
-                )
-            ]
-        )
-        chart = dcc.Graph(
-            className='stonk-chart',
+def update_content(_, price_data, earnings_data):
+    if price_data:
+        fig = prep.stonk_graph(price_data, earnings_data)
+        graph = dcc.Graph(
+            className='stonk-graph',
             figure=fig,
             config={'displayModeBar': False}
         )
-        return chart
+        return graph
 
-"""
-@app.callback(
-    Output('tab-content', 'children'),
-    Input('content-tabs', 'active_tab'),
-    Input('chart-data', 'data'),
-    Input('stats-data', 'data'),
-    Input('screener-data', 'data')
-)
-def update_content(tab, chart, stats, screener):
-    if (tab == 'chart-tab') and (chart is not None):
-        df = pd.DataFrame.from_dict(chart, orient='index')
-        component = dcc.Graph(
-            figure=go.Figure(
-                data=go.Scatter(x=df.date, y=df.close),
-                layout=sdl.stock_chart_layout
-            )
-        )
-    elif (tab == 'stats-tab') and (stats is not None):
-        df = pd.DataFrame(stats)
-        component = dbc.Table.from_dataframe(df=df)
-    elif (tab == 'screener-tab') and (screener is not None):
-        df = pd.DataFrame(screener)
-        component = dbc.Table.from_dataframe(df=df)
-    else:
-        component = dcc.Graph(
-            figure=go.Figure(
-                data=go.Bar(x=['a', 'b', 'c', 'd'], y=[1, 2, 3, 4]),
-                layout=sdl.stock_chart_layout
-            )
-        )
-    return component
-"""
 
 if __name__ == '__main__':
     app.run_server(debug=True)
