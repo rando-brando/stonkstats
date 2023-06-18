@@ -15,7 +15,8 @@ fmp = FMP(FMP_API_KEY)
 symbols = json.dumps([
     {"symbol": "AAPL", "companyName": "Apple", "exchangeShortName": "NASDAQ"},
     {"symbol": "MSFT", "companyName": "Microsoft", "exchangeShortName": "NASDAQ"},
-    {"symbol": "AMZN", "companyName": "Amazon", "exchangeShortName": "NASDAQ"}
+    {"symbol": "AMZN", "companyName": "Amazon", "exchangeShortName": "NASDAQ"},
+    {"symbol": "PARA", "companyName": "Paramount", "exchangeShortName": "NYSE"}
 ])
 
 app = Dash(__name__, external_stylesheets=[dbc.themes.SLATE])
@@ -59,7 +60,11 @@ app.layout = html.Div(
             id='content-container',
             children=[
                 dcc.Store(
-                    id='chart-data',
+                    id='price-data',
+                    storage_type='memory'
+                ),
+                dcc.Store(
+                    id='earnings-data',
                     storage_type='memory'
                 ),
                 dcc.Store(
@@ -107,17 +112,80 @@ app.clientside_callback(
 )
 
 @app.callback(
-    Output('chart-data', 'data'),
-    Output('stats-data', 'data'),
-    Output('screener-data', 'data'),
+    Output('price-data', 'data'),
+    Output('earnings-data', 'data'),
     Input('selected-option', 'data')
 )
 def update_data(symbol):
-    chart_data = fmp.technical_chart(symbol)
-    stats_data = fmp.key_metrics(symbol)
-    screener_data = fmp.company_profile(symbol)
-    return [chart_data, stats_data, screener_data]
+    price = fmp.technical_chart(symbol)
+    earnings = fmp.earnings_surprises(symbol)
+    return [price, earnings]
 
+@app.callback(
+    Output('tab-content', 'children'),
+    Input('price-data', 'modified_timestamp'),
+    State('price-data', 'data'),
+    State('earnings-data', 'data')
+)
+def update_content(_, price, earnings):
+    if price:
+        # compute sma200
+        price = pd.DataFrame(price)
+        sma200 = price['close'].rolling(200).mean().shift(-200)
+        price = price.assign(sma200=sma200).head(7305)
+        # compute pe line
+        earnings = pd.DataFrame(earnings)
+        peline = 15 * earnings['actualEarningResult'].rolling(4).sum().shift(-4)
+        earnings = earnings.assign(peline=peline).head(80)
+        # update stonk layout
+        layout = sdl.stock_chart_layout
+        layout['xaxis']['range'] = [
+            price.date.min(skipna=True), 
+            price.date.max(skipna=True)]
+        layout['yaxis']['range'] = [
+            price.close.min(skipna=True),
+            price.close.max(skipna=True)]
+        fig = go.Figure(
+            layout=layout,
+            data = [
+                go.Scatter(
+                    x=price.date,
+                    y=price.close,
+                    mode='lines',
+                    name='Close'
+                ),
+                go.Scatter(
+                    x=price.date,
+                    y=price.sma,
+                    mode='lines',
+                    name='50d MA',
+                    line_width=3
+                ),
+                go.Scatter(
+                    x=price.date,
+                    y=price.sma200,
+                    mode='lines',
+                    name='200d MA',
+                    line_width=3
+                ),
+                go.Scatter(
+                    x=earnings.date,
+                    y=earnings.peline,
+                    mode='lines',
+                    name='PE Line',
+                    fill='tozeroy',
+                    line_width=3
+                )
+            ]
+        )
+        chart = dcc.Graph(
+            className='stonk-chart',
+            figure=fig,
+            config={'displayModeBar': False}
+        )
+        return chart
+
+"""
 @app.callback(
     Output('tab-content', 'children'),
     Input('content-tabs', 'active_tab'),
@@ -127,15 +195,15 @@ def update_data(symbol):
 )
 def update_content(tab, chart, stats, screener):
     if (tab == 'chart-tab') and (chart is not None):
-        df = pd.DataFrame(chart)
+        df = pd.DataFrame.from_dict(chart, orient='index')
         component = dcc.Graph(
             figure=go.Figure(
-                data=go.Scatter(x=df.close, y=df.date),
+                data=go.Scatter(x=df.date, y=df.close),
                 layout=sdl.stock_chart_layout
             )
         )
     elif (tab == 'stats-tab') and (stats is not None):
-        df = pd.DataFrame.(stats)
+        df = pd.DataFrame(stats)
         component = dbc.Table.from_dataframe(df=df)
     elif (tab == 'screener-tab') and (screener is not None):
         df = pd.DataFrame(screener)
@@ -148,6 +216,7 @@ def update_content(tab, chart, stats, screener):
             )
         )
     return component
+"""
 
 if __name__ == '__main__':
     app.run_server(debug=True)
