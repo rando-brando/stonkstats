@@ -7,7 +7,8 @@ import json
 
 def load_search():
     fmp = FMP(FMP_API_KEY)
-    symbols = json.dumps(fmp.stock_screener({'exchange': 'NYSE,AMEX,NASDAQ'}))
+    symbols = fmp.stock_screener({'exchange': 'NYSE,AMEX,NASDAQ'})
+    symbols.sort_values(['symbol', 'companyName'], ignore_index=True, inplace=True)
 
     div = html.Div(
         id='search-container',
@@ -16,7 +17,7 @@ def load_search():
             dcc.Store(
                 id='search-options',
                 storage_type='memory',
-                data=symbols
+                data=json.dumps(symbols)
             ),
             dcc.Store(
                 id='selected-option',

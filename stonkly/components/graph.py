@@ -18,11 +18,11 @@ class Graph:
 
 
 class StonkGraph(Graph):
-    def __init__(self, price, earnings, estimates):
+    def __init__(self, price=None, earnings=None, estimates=None):
         super().__init__()
-        self.price = self._price(price)
-        self.earnings = self._earnings(earnings)
-        self.estimates = self._estimates(estimates)
+        self.price = price
+        self.earnings = earnings
+        self.estimates = estimates
         self.fairPEG = 15
         self.normalPEG = 15
         self.maxPEG = 30
@@ -53,24 +53,28 @@ class StonkGraph(Graph):
             'griddash': 'dash',
             'gridcolor': 'rgba(128,128,128,0.5)'
         }
+        self._price()
+        self._earnings()
+        self._estimates()
         self._price_earnings()
         self._xrange()
         self._yrange()
 
-    def _price(self, price):
-        df = pd.DataFrame(price).sort_values('date')
+    def _price(self):
+        df = pd.DataFrame(self.price).sort_values('date')
         df['date'] = pd.to_datetime(df['date'])
         df['sma200'] = df['close'].rolling(200).mean()
         return df
 
-    def _earnings(self, earnings):
+    def _earnings(self):
         # TODO: Fix 4p for stocks that report more or less
-        df = pd.DataFrame(earnings).sort_values('date')
+        df = pd.DataFrame(self.earnings).sort_values('date')
         df['date'] = pd.to_datetime(df['date'])
         df['epsTTM'] = df['actualEarningResult'].rolling(4).sum()
         return df
 
-    def _estimates(self, estimates):
+    def _estimates(self):
+        estimates = self.estimates
         thisY = pd.to_datetime(estimates[2]['endDate'])
         nextY = pd.to_datetime(estimates[3]['endDate'])
         gr1Y = estimates[3]['growth']
@@ -195,7 +199,6 @@ class StonkGraph(Graph):
                         name='Fair Fwd PE',
                         fill='tozeroy',
                         line_width=3,
-                        line_dash='dot'
                     ),
                     go.Scatter(
                         x=self.fpe.date,
