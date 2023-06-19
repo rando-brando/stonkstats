@@ -1,17 +1,18 @@
 {
-    "name": "stonkstats",
-    "dockerComposeFile": "docker-compose.yaml",
-    "service": "app",
-    "workspaceFolder": "/stonkstats",
-    "remoteUser": "vscode",
-    "forwardPorts": [5000, 8050],
-    "customizations": {
-		"vscode": {
-			"extensions": [
-				"ms-python.python",
-                "ms-python.flake8",
-                "njpwerner.autodocstring"
-			]
-		}
-	}
+  "name": "stonkstats",
+  "dockerComposeFile": "docker-compose.yaml",
+  "service": "app",
+  "workspaceFolder": "/stonkstats",
+  "remoteUser": "vscode",
+  "forwardPorts": [5000, 8050],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.flake8",
+        "njpwerner.autodocstring"
+      ]
+    }
+  },
+  "postCreateCommand": "pip install -r requirements.txt"
 }
