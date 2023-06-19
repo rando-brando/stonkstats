@@ -6,7 +6,7 @@ import json
 
 
 class Search:
-    def load():
+    def load(self):
         fmp = FMP(FMP_API_KEY)
         #symbols = fmp.stock_screener({'exchange': 'NYSE,AMEX,NASDAQ'})
         symbols = [{'symbol': 'AAPL', 'companyName': 'Apple', 'exchange': 'NASDAQ'}]

@@ -3,7 +3,7 @@ import dash_bootstrap_components as dbc
 
 
 class Content:
-    def load():
+    def load(self):
         div = html.Div(
             id='content-container',
             children=[
