@@ -7,8 +7,8 @@ app.layout = html.Div(
     id='app-body',
     className='app-body dbc',
     children=[
-        components.load_title(),
-        components.load_search(),
-        components.load_content()
+        components.title.load(),
+        components.search.load(),
+        components.content.load()
     ]
 )

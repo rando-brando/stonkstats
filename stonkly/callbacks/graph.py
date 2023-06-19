@@ -13,4 +13,4 @@ from stonkly.components.graph import StonkGraph
 def update_content(_, price, earnings, estimates):
     if price:
         graph = StonkGraph(price, earnings, estimates)
-        return graph.load_graph()
+        return graph.load()

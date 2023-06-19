@@ -167,7 +167,7 @@ class StonkGraph(Graph):
             'range': [ymin, ymax]
         }
 
-    def load_graph(self):
+    def load(self):
         graph = dcc.Graph(
             className='stonk-graph',
             config={
