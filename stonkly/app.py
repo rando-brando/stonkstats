@@ -1,4 +1,4 @@
-from .server import app
+from .server import app, server
 from dash import html
 from . import components
 from . import callbacks
