@@ -20,14 +20,124 @@ class Graph:
 class StonkGraph(Graph):
     def __init__(self, price=None, earnings=None, estimates=None):
         super().__init__()
+        # default attributes
         self.price = price
         self.earnings = earnings
         self.estimates = estimates
-        self.fairPEG = 15
-        self.normalPEG = 15
-        self.maxPEG = 30
         self.pe = None
         self.fpe = None
+        peg = {
+            'fair': 15,
+            'normal': 15,
+            'max': 15
+        }
+        dates = {
+            'thisY': pd.to_datetime(self.estimates[2]['endDate']),
+            'nextY': pd.to_datetime(self.estimates[3]['endDate'])
+        }
+        growth = {
+            '0Y': estimates[2]['growth'],
+            '1Y': estimates[3]['growth'],
+            '5Y': estimates[4]['growth']
+        }
+        offsets = {
+            '1D': pd.DateOffset(days=1),
+            '1Y': pd.DateOffset(years=1),
+            '20Y': pd.DateOffset(years=20)
+        }
+
+        # price dataframe
+        self.price = pd.DataFrame(self.price).sort_values('date')
+        self.price['date'] = pd.to_datetime(self.price['date'])
+        #self.price['sma200'] = self.price['close'].rolling(200).mean()
+
+        # earnings dataframe
+        # TODO: Fix 4p for stocks that report more or less?
+        self.earnings = pd.DataFrame(self.earnings).sort_values('date')
+        self.earnings['date'] = pd.to_datetime(self.earnings['date'])
+        self.earnings['epsTTM'] = self.earnings['actualEarningResult'].rolling(4).sum()
+
+        # estimates dataframe
+        data = []
+        if dates['thisY']:
+            data.append({
+                'dates': dates['thisY'],
+                'growth': estimates[2]['growth'],
+                'avgEstimate': estimates[2]['earningsEstimate']['avg'],
+                'lowEstimate': estimates[2]['earningsEstimate']['low'],
+                'highEstimate': estimates[2]['earningsEstimate']['high']
+            })
+        if dates['nextY']:
+            data.append({
+                'dates': dates['nextY'],
+                'growth': estimates[3]['growth'],
+                'avgEstimate': estimates[3]['earningsEstimate']['avg'],
+                'lowEstimate': estimates[3]['earningsEstimate']['low'],
+                'highEstimate': estimates[3]['earningsEstimate']['high']
+            })
+        if growth['5Y']:
+            if growth['1Y']:
+                growth['4Y'] = pow(pow(1 + growth['5Y'], 5) / (1 + growth['1Y']), 0.25) - 1
+                rates = [growth['4Y']] * 4
+            else:
+                rates = [growth['5Y']] * 5
+            for rate in rates:
+                data.append({
+                    'dates': data[-1]['dates'] + offsets['1D'] + offsets['1Y'] - offsets['1D'],
+                    'growth': rate,
+                    'avgEstimate': data[-1]['avgEstimate'] * (1 + rate),
+                    'lowEstimate': data[-1]['lowEstimate'] * (1 + rate),
+                    'highEstimate': data[-1]['highEstimate'] * (1 + rate)
+                })
+        self.estimates = pd.DataFrame(data)
+
+        # price to earnings dataframe
+        df = self.earnings
+        df['earningDate'] = df['date']
+        self.pe = pd.merge_asof(self.price, df, on='date')
+        self.pe['peTTM'] = self.pe['close'] / self.pe['epsTTM']
+        self.pe = self.pe.groupby(
+            ['earningDate', 'epsTTM'],
+            as_index=False,
+            sort=False
+        ).agg({'peTTM': 'mean'})
+        self.pe.rename(columns={'earningDate': 'date'}, inplace=True)
+        rate = growth['5Y'] if growth['5Y'] else growth['1Y'] if growth['1Y'] else growth['0Y']
+        peg['fair'] = min(max(100 * rate, peg['fair']), peg['max'])
+        peg['normal'] = min(max(self.pe['peTTM'].iloc[-20:].mean(), peg['normal']), peg['max'])
+        self.pe['fairPE'] = self.pe['epsTTM'] * peg['fair']
+        self.pe['normalPE'] = self.pe['epsTTM'] * self.pe['peTTM'].rolling(20).mean()
+        self.estimates['fairFwdPE'] = self.estimates['avgEstimate'] * peg['fair']
+        self.estimates['lowFwdPE'] = self.estimates['lowEstimate'] * peg['fair']
+        self.estimates['highFwdPE'] = self.estimates['highEstimate'] * peg['fair']
+        self.estimates['normalFwdPE'] = self.estimates['avgEstimate'] * peg['normal']
+        self.fpe = self.pe.tail(1).rename(columns={'fairPE': 'fairFwdPE', 'normalPE': 'normalFwdPE'})
+        self.fpe['lowFwdPE'] = self.fpe['fairFwdPE']
+        self.fpe['highFwdPE'] = self.fpe['fairFwdPE']
+        self.fpe = pd.concat([self.fpe, self.estimates], ignore_index=True)
+
+        # layout
+        ymin = 0
+        ymax = max(
+            self.price['close'].max(skipna=True),
+            self.pe['fairPE'].max(skipna=True),
+            self.pe['normalPE'].max(skipna=True),
+            self.fpe['highFwdPE'].max(skipna=True),
+            self.fpe['normalFwdPE'].max(skipna=True))
+        xmin = max(
+            self.price['date'].min(skipna=True),
+            self.price['date'].max(skipna=True) - offsets['20Y'])
+        xmax = max(
+            self.fpe['date'].max(skipna=True),
+            self.price['date'].max(skipna=True))
+        date_selector = []
+        for i in range(xmax.year - xmin.year, 0, -1):
+            date_selector.append({
+                'count': i,
+                'label': f'{i}Y',
+                'step': 'year',
+                'stepmode': 'backward'
+            })
         self.layout['height'] = 1000
         self.layout['legend'] = {'x': 0, 'y': 1}
         self.layout['xaxis'] = {
@@ -39,7 +149,9 @@ class StonkGraph(Graph):
             'spikethickness': -2,
             'griddash': 'dash',
             'gridcolor': 'rgba(128,128,128,0.5)',
-            'dtick': 'M12'
+            'dtick': 'M12',
+            'rangeselector': {'buttons': date_selector},
+            'range': [xmin, xmax]
         }
         self.layout['yaxis'] = {
             'showspikes': True,
@@ -48,133 +160,12 @@ class StonkGraph(Graph):
             'spikecolor': 'gray',
             'spikedash': 'dash',
             'spikethickness': -2,
-            'rangemode': "tozero",
             'side': 'right',
             'griddash': 'dash',
-            'gridcolor': 'rgba(128,128,128,0.5)'
+            'gridcolor': 'rgba(128,128,128,0.5)',
+            'rangemode': "tozero",
+            'range': [ymin, ymax]
         }
-        self._price()
-        self._earnings()
-        self._estimates()
-        self._price_earnings()
-        self._xrange()
-        self._yrange()
-
-    def _price(self):
-        df = pd.DataFrame(self.price).sort_values('date')
-        df['date'] = pd.to_datetime(df['date'])
-        df['sma200'] = df['close'].rolling(200).mean()
-        return df
-
-    def _earnings(self):
-        # TODO: Fix 4p for stocks that report more or less
-        df = pd.DataFrame(self.earnings).sort_values('date')
-        df['date'] = pd.to_datetime(df['date'])
-        df['epsTTM'] = df['actualEarningResult'].rolling(4).sum()
-        return df
-
-    def _estimates(self):
-        estimates = self.estimates
-        thisY = pd.to_datetime(estimates[2]['endDate'])
-        nextY = pd.to_datetime(estimates[3]['endDate'])
-        gr1Y = estimates[3]['growth']
-        gr5Y = estimates[4]['growth']
-        dates, growth, avgs, highs, lows = [], [], [], [], []
-        if thisY:
-            dates.append(thisY)
-            growth.append(estimates[2]['growth'])
-            avgs.append(estimates[2]['earningsEstimate']['avg'])
-            lows.append(estimates[2]['earningsEstimate']['low'])
-            highs.append(estimates[2]['earningsEstimate']['high'])
-        if nextY:
-            dates.append(nextY)
-            growth.append(estimates[3]['growth'])
-            avgs.append(estimates[3]['earningsEstimate']['avg'])
-            lows.append(estimates[3]['earningsEstimate']['low'])
-            highs.append(estimates[3]['earningsEstimate']['high'])
-        if gr5Y:
-            if gr1Y:
-                gr4Y = pow(pow(1 + gr5Y, 5) / (1 + gr1Y), 0.25)
-                grs = [gr4Y] * 4
-            else:
-                grs = [1 + gr5Y] * 5
-            for gr in grs:
-                offD = pd.DateOffset(days=1)
-                offY = pd.DateOffset(years=1)
-                dates.append(dates[-1] + offD + offY - offD)
-                growth.append(gr - 1)
-                avgs.append(avgs[-1] * gr)
-                lows.append(lows[-1] * gr)
-                highs.append(highs[-1] * gr)
-        data = {
-            'date': dates,
-            'growth': growth,
-            'avgEstimate': avgs,
-            'lowEstimate': lows,
-            'highEstimate': highs
-        }
-        df = pd.DataFrame(data)
-        return df
-
-    def _price_earnings(self):
-        # join price and earnings
-        self.earnings['earningDate'] = self.earnings['date']
-        self.pe = pd.merge_asof(self.price, self.earnings, on='date')
-        self.pe['peTTM'] = self.pe['close'] / self.pe['epsTTM']
-        cols = ['earningDate', 'epsTTM']
-        aggs = {'peTTM': 'mean'}
-        self.pe = self.pe.groupby(cols, as_index=False, sort=False).agg(aggs)
-        self.pe.rename(columns={'earningDate': 'date'}, inplace=True)
-        # calculate growth rates
-        offY = self.earnings['date'].iloc[-1] + pd.DateOffset(years=1)
-        growth = self.estimates[self.estimates['date'] > offY]['growth'].iloc[0]
-        self.fairPEG = min(max(100 * growth, self.fairPEG), self.maxPEG)
-        self.normalPEG = min(max(self.pe['peTTM'].iloc[-20:].mean(), self.normalPEG), self.maxPEG)
-        # calculte ratios
-        self.pe['fairPE'] = self.pe['epsTTM'] * self.fairPEG
-        self.pe['normalPE'] = self.pe['epsTTM'] * self.pe['peTTM'].rolling(20).mean()
-        self.estimates['fairFwdPE'] = self.estimates['avgEstimate'] * self.fairPEG
-        self.estimates['lowFwdPE'] = self.estimates['lowEstimate'] * self.fairPEG
-        self.estimates['highFwdPE'] = self.estimates['highEstimate'] * self.fairPEG
-        self.estimates['normalFwdPE'] = self.estimates['avgEstimate'] * self.normalPEG
-        self.fpe = self.pe.tail(1).rename(columns={'fairPE': 'fairFwdPE', 'normalPE': 'normalFwdPE'})
-        self.fpe['lowFwdPE'] = self.fpe['fairFwdPE']
-        self.fpe['highFwdPE'] = self.fpe['fairFwdPE']
-        self.fpe = pd.concat([self.fpe, self.estimates], ignore_index=True)
-
-    def _xrange(self):
-        offY20 = pd.DateOffset(days=365.25 * 20)
-        xmax = max(
-            self.price['date'].max(skipna=True),
-            self.fpe['date'].max(skipna=True)
-        )
-        xmin = max(
-            self.price['date'].max(skipna=True) - offY20,
-            self.price['date'].min(skipna=True)
-        )
-        i = xmax.year - xmin.year
-        date_selector = [
-            {
-                'count': i,
-                'label': f'{i}Y',
-                'step': 'year',
-                'stepmode': 'backward'
-            }
-            for i in range(i, 0, -1)
-        ]
-        self.layout['xaxis']['range'] = [xmin, xmax]
-        self.layout['xaxis']['rangeselector'] = {'buttons': date_selector}
-
-    def _yrange(self):
-        ymax = max(
-            self.price['close'].max(skipna=True),
-            self.pe['fairPE'].max(skipna=True),
-            self.pe['normalPE'].max(skipna=True),
-            self.fpe['highFwdPE'].max(skipna=True),
-            self.fpe['normalFwdPE'].max(skipna=True)
-        )
-        ymin = 0
-        self.layout['yaxis']['range'] = [ymin, ymax]
 
     def load_graph(self):
         graph = dcc.Graph(
@@ -191,47 +182,44 @@ class StonkGraph(Graph):
                         y=self.pe.fairPE,
                         name='Fair PE',
                         fill='tozeroy',
-                        line_width=3
+                        line={'width': 3}
                     ),
                     go.Scatter(
                         x=self.fpe.date,
                         y=self.fpe.fairFwdPE,
                         name='Fair Fwd PE',
                         fill='tozeroy',
-                        line_width=3,
+                        line={'width': 3}
                     ),
                     go.Scatter(
                         x=self.fpe.date,
                         y=self.fpe.highFwdPE,
                         name='High Fwd PE',
-                        line_width=3,
-                        line_dash='dash'
+                        line={'width': 3, 'dash': 'dash'}
                     ),
                     go.Scatter(
                         x=self.fpe.date,
                         y=self.fpe.lowFwdPE,
                         name='Low Fwd PE',
-                        line_width=3,
-                        line_dash='dash'
+                        line={'width': 3, 'dash': 'dash'}
                     ),
                     go.Scatter(
                         x=self.pe.date,
                         y=self.pe.normalPE,
-                        name='Normal PE',
-                        line_width=3
+                        name='5Y Avg PE',
+                        line={'width': 3}
                     ),
                     go.Scatter(
                         x=self.fpe.date,
                         y=self.fpe.normalFwdPE,
-                        name='Normal Fwd PE',
-                        line_width=3,
-                        line_dash='dot'
+                        name='5Y Avg Fwd PE',
+                        line={'width': 3, 'dash': 'dot'}
                     ),
                     go.Scatter(
                         x=self.price.date,
                         y=self.price.close,
                         name='Close',
-                        line_color='white'
+                        line={'color': 'white'}
                     )
                 ]
             )
