@@ -1,15 +1,15 @@
 from dash import dcc, html
 import dash_bootstrap_components as dbc
-from stonkly.config import FMP_API_KEY
 from stonkly.data.fmp import FMP
 import json
+import os
 
 
 class Search:
     def load(self):
+        FMP_API_KEY = os.getenv('FMP_API_KEY')
         fmp = FMP(FMP_API_KEY)
-        #symbols = fmp.stock_screener({'exchange': 'NYSE,AMEX,NASDAQ'})
-        symbols = [{'symbol': 'AAPL', 'companyName': 'Apple', 'exchange': 'NASDAQ'}]
+        symbols = fmp.stock_screener({'exchange': 'NYSE,AMEX,NASDAQ'})
 
         div = html.Div(
             id='search-container',
