@@ -10,7 +10,7 @@ from stonkly.components.graph import StonkGraph
     State('earnings-data', 'data'),
     State('estimates-data', 'data')
 )
-def update_content(_, price, earnings, estimates):
-    if price:
-        graph = StonkGraph(price, earnings, estimates)
+def update_content(_, prices, earnings, estimates):
+    if prices:
+        graph = StonkGraph(prices, earnings, estimates)
         return graph.load()

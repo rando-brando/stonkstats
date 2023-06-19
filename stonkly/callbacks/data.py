@@ -14,7 +14,7 @@ import os
 def update_data(symbol):
     FMP_API_KEY = os.getenv('FMP_API_KEY')
     fmp = FMP(FMP_API_KEY)
-    price = fmp.technical_chart(symbol)
+    prices = fmp.technical_chart(symbol)
     earnings = fmp.earnings_surprises(symbol)
     estimates = yq.Ticker(symbol).earnings_trend[symbol]['trend']
-    return [price, earnings, estimates]
+    return [prices, earnings, estimates]

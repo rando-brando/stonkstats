@@ -18,10 +18,10 @@ class Graph:
 
 
 class StonkGraph(Graph):
-    def __init__(self, price=None, earnings=None, estimates=None):
+    def __init__(self, prices=None, earnings=None, estimates=None):
         super().__init__()
         # default attributes
-        self.price = price
+        self.prices = prices
         self.earnings = earnings
         self.estimates = estimates
         self.pe = None
@@ -46,10 +46,9 @@ class StonkGraph(Graph):
             '20Y': pd.DateOffset(years=20)
         }
 
-        # price dataframe
-        self.price = pd.DataFrame(self.price).sort_values('date')
-        self.price['date'] = pd.to_datetime(self.price['date'])
-        #self.price['sma200'] = self.price['close'].rolling(200).mean()
+        # prices dataframe
+        self.prices = pd.DataFrame(self.prices).sort_values('date')
+        self.prices['date'] = pd.to_datetime(self.prices['date'])
 
         # earnings dataframe
         # TODO: Fix 4p for stocks that report more or less?
@@ -91,10 +90,10 @@ class StonkGraph(Graph):
                 })
         self.estimates = pd.DataFrame(data)
 
-        # price to earnings dataframe
+        # prices to earnings dataframe
         df = self.earnings
         df['earningDate'] = df['date']
-        self.pe = pd.merge_asof(self.price, df, on='date')
+        self.pe = pd.merge_asof(self.prices, df, on='date')
         self.pe['peTTM'] = self.pe['close'] / self.pe['epsTTM']
         self.pe = self.pe.groupby(
             ['earningDate', 'epsTTM'],
@@ -119,17 +118,17 @@ class StonkGraph(Graph):
         # layout
         ymin = 0
         ymax = max(
-            self.price['close'].max(skipna=True),
+            self.prices['close'].max(skipna=True),
             self.pe['fairPE'].max(skipna=True),
             self.pe['normalPE'].max(skipna=True),
             self.fpe['highFwdPE'].max(skipna=True),
             self.fpe['normalFwdPE'].max(skipna=True))
         xmin = max(
-            self.price['date'].min(skipna=True),
-            self.price['date'].max(skipna=True) - offsets['20Y'])
+            self.prices['date'].min(skipna=True),
+            self.prices['date'].max(skipna=True) - offsets['20Y'])
         xmax = max(
             self.fpe['date'].max(skipna=True),
-            self.price['date'].max(skipna=True))
+            self.prices['date'].max(skipna=True))
         date_selector = []
         for i in range(xmax.year - xmin.year, 0, -1):
             date_selector.append({
@@ -216,8 +215,8 @@ class StonkGraph(Graph):
                         line={'width': 3, 'dash': 'dot'}
                     ),
                     go.Scatter(
-                        x=self.price.date,
-                        y=self.price.close,
+                        x=self.prices.date,
+                        y=self.prices.close,
                         name='Close',
                         line={'color': 'white'}
                     )
