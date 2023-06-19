@@ -1,6 +1,23 @@
+from dash import Input, Output, State
+from stonkly.server import app
+from stonkly.components.graph import load_graph
 import plotly.graph_objs as go
-import stonkly.dashboard.layouts as sdl
+import stonkly.layouts as sdl
 import pandas as pd
+
+
+@app.callback(
+    Output('tab-content', 'children'),
+    Input('price-data', 'modified_timestamp'),
+    State('price-data', 'data'),
+    State('earnings-data', 'data'),
+    State('estimates-data', 'data')
+)
+def update_content(_, price, earnings, estimates):
+    if price:
+        fig = stonk_graph(price, earnings, estimates)
+        graph = load_graph(fig)
+        return graph
 
 
 def _price(price):
@@ -88,20 +105,22 @@ def _price_to_earnings(price, earnings, estimates):
     return pe, fpe
 
 
-def _graph_layout(price, fpe):
+def _graph_layout(price, pe, fpe):
     graph_layout = sdl.graph_layout
     xmax = max(
-        pd.Timestamp.now(),
-        fpe['date'].max()
+        price['date'].max(skipna=True),
+        fpe['date'].max(skipna=True)
     )
     xmin = max(
-        price['date'].max() - pd.Timedelta(days=365.25 * 20),
-        price['date'].min()
+        price['date'].max(skipna=True) - pd.Timedelta(days=365.25 * 20),
+        price['date'].min(skipna=True)
     )
     ymax = max(
-        price['close'].max(),
-        fpe['normalFwdPE'].max(),
-        fpe['highFwdPE'].max()
+        price['close'].max(skipna=True),
+        pe['fairPE'].max(skipna=True),
+        pe['normalPE'].max(skipna=True),
+        fpe['highFwdPE'].max(skipna=True),
+        fpe['normalFwdPE'].max(skipna=True)
     )
     ymin = 0
     i = xmax.year - xmin.year
@@ -114,10 +133,8 @@ def _graph_layout(price, fpe):
         }
         for i in range(i, 0, -1)
     ]
-    date_selector.append({'label': 'ALL', 'step': 'all'})
     graph_layout['xaxis']['range'] = [xmin, xmax]
     graph_layout['yaxis']['range'] = [ymin, ymax]
-    graph_layout['xaxis']['rangeselector'] = None
     graph_layout['xaxis']['rangeselector'] = {'buttons': date_selector}
     return graph_layout
 
@@ -128,7 +145,7 @@ def stonk_graph(price, earnings, estimates):
     estimates = _estimates(estimates)
     pe, fpe = _price_to_earnings(price, earnings, estimates)
     fig = go.Figure(
-        layout=_graph_layout(price, fpe),
+        layout=_graph_layout(price, pe, fpe),
         data=[
             go.Scatter(
                 x=pe.date,
@@ -181,18 +198,3 @@ def stonk_graph(price, earnings, estimates):
         ]
     )
     return fig
-
-"""
-go.Scatter(
-    x=price.date,
-    y=price.sma200,
-    name='200d MA',
-    line_width=1,
-),
-go.Scatter(
-    x=price.date,
-    y=price.sma,
-    name='50d MA',
-    line_width=1
-)
-"""

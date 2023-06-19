@@ -21,7 +21,9 @@ graph_layout = {
         'spikecolor': 'gray',
         'spikedash': 'dash',
         'spikethickness': -2,
-        'fixedrange': True
+        'griddash': 'dash',
+        'gridcolor': 'rgba(128,128,128,0.5)',
+        'dtick': 'M12'
     },
     'yaxis': {
         'showspikes': True,
@@ -30,9 +32,10 @@ graph_layout = {
         'spikecolor': 'gray',
         'spikedash': 'dash',
         'spikethickness': -2,
-        'fixedrange': True,
         'rangemode': "tozero",
-        'side': 'right'
+        'side': 'right',
+        'griddash': 'dash',
+        'gridcolor': 'rgba(128,128,128,0.5)'
     },
     'legend': {
             'x': 0,
