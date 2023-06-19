@@ -8,8 +8,8 @@ import json
 class Search:
     def load():
         fmp = FMP(FMP_API_KEY)
-        symbols = fmp.stock_screener({'exchange': 'NYSE,AMEX,NASDAQ'})
-        symbols.sort_values(['symbol', 'companyName'], ignore_index=True, inplace=True)
+        #symbols = fmp.stock_screener({'exchange': 'NYSE,AMEX,NASDAQ'})
+        symbols = [{'symbol': 'AAPL', 'companyName': 'Apple', 'exchange': 'NASDAQ'}]
 
         div = html.Div(
             id='search-container',
