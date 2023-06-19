@@ -1,8 +1,8 @@
 from dash import Input, Output
 from stonkly.server import app
-from stonkly.config import FMP_API_KEY
 from stonkly.data.fmp import FMP
 import yahooquery as yq
+import os
 
 
 @app.callback(
@@ -12,6 +12,7 @@ import yahooquery as yq
     Input('selected-option', 'data')
 )
 def update_data(symbol):
+    FMP_API_KEY = os.getenv('FMP_API_KEY')
     fmp = FMP(FMP_API_KEY)
     price = fmp.technical_chart(symbol)
     earnings = fmp.earnings_surprises(symbol)
