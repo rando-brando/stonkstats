@@ -4,7 +4,7 @@
   "service": "app",
   "workspaceFolder": "/stonkstats",
   "remoteUser": "vscode",
-  "forwardPorts": [5000, 8050],
+  "forwardPorts": [8050],
   "customizations": {
     "vscode": {
       "extensions": [
