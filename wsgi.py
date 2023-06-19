@@ -1,4 +1,5 @@
-from stonkly.app import server
+from stonkly.app import app
+application = app.server
 
 if __name__ == '__main__':
-    server.run(debug=False, host='0.0.0.0')
+    application.run_server()
