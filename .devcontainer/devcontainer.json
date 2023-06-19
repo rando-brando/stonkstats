@@ -2,8 +2,8 @@
   "name": "stonkstats",
   "dockerComposeFile": "docker-compose.yaml",
   "service": "app",
-  "workspaceFolder": "/stonkstats",
   "remoteUser": "vscode",
+  "workspaceFolder": "/workspace",
   "forwardPorts": [8050],
   "customizations": {
     "vscode": {
