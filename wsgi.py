@@ -2,10 +2,30 @@ from dash import Dash, dcc, html, Output, Input, State
 from dash import ClientsideFunction, ALL
 import dash_bootstrap_components as dbc
 import stonkly.data.prep as prep
+from stonkly.data.fmp import FMP
 import yahooquery as yq
+import json
+import os
 
-fmp = prep.fmp()
-symbols = prep.symbols()
+FMP_API_KEY = os.getenv('FMP_API_KEY')
+#fmp = FMP(FMP_API_KEY)
+fmp = FMP('49321212b4be9b12e53d52e3d0bb5d0d')
+#symbols = fmp.stock_screener({'exchange': 'NYSE,AMEX,NASDAQ'})
+symbols = json.dumps([
+    {"symbol": "AAPL", "companyName": "Apple", "exchangeShortName": "NASDAQ"},
+    {"symbol": "MSFT", "companyName": "Microsoft", "exchangeShortName": "NASDAQ"},
+    {"symbol": "AMZN", "companyName": "Amazon", "exchangeShortName": "NASDAQ"},
+    {"symbol": "PARA", "companyName": "Paramount", "exchangeShortName": "NYSE"},
+    {"symbol": "NVDA", "companyName": "Nvidia", "exchangeShortName": "NASDAQ"},
+    {"symbol": "AMD", "companyName": "AMD", "exchangeShortName": "NASDAQ"},
+    {"symbol": "TGT", "companyName": "Target", "exchangeShortName": "NYSE"},
+    {"symbol": "PGR", "companyName": "Progressive", "exchangeShortName": "NYSE"},
+    {"symbol": "BMY", "companyName": "BMY", "exchangeShortName": "NYSE"},
+    {"symbol": "CI", "companyName": "Cigna", "exchangeShortName": "NYSE"},
+    {"symbol": "ULTA", "companyName": "Ulta", "exchangeShortName": "NYSE"},
+    {"symbol": "ELF", "companyName": "Elf", "exchangeShortName": "NYSE"},
+    {"symbol": "CVS", "companyName": "CVS", "exchangeShortName": "NYSE"}
+])
 
 app = Dash(__name__, external_stylesheets=[dbc.themes.SLATE])
 
@@ -53,6 +73,10 @@ app.layout = html.Div(
                 ),
                 dcc.Store(
                     id='earnings-data',
+                    storage_type='memory'
+                ),
+                dcc.Store(
+                    id='estimates-data',
                     storage_type='memory'
                 ),
                 dcc.Store(
@@ -105,27 +129,34 @@ app.clientside_callback(
 @app.callback(
     Output('price-data', 'data'),
     Output('earnings-data', 'data'),
+    Output('estimates-data', 'data'),
     Input('selected-option', 'data')
 )
 def update_data(symbol):
     price = fmp.technical_chart(symbol)
     earnings = fmp.earnings_surprises(symbol)
-    return [price, earnings]
+    estimates = yq.Ticker(symbol).earnings_trend[symbol]['trend']
+    return [price, earnings, estimates]
 
 
 @app.callback(
     Output('tab-content', 'children'),
     Input('price-data', 'modified_timestamp'),
     State('price-data', 'data'),
-    State('earnings-data', 'data')
+    State('earnings-data', 'data'),
+    State('estimates-data', 'data')
 )
-def update_content(_, price_data, earnings_data):
-    if price_data:
-        fig = prep.stonk_graph(price_data, earnings_data)
+def update_content(_, price, earnings, estimates):
+    if price:
+        fig = prep.stonk_graph(price, earnings, estimates)
         graph = dcc.Graph(
             className='stonk-graph',
             figure=fig,
-            config={'displayModeBar': False}
+            config={
+                'displayModeBar': False,
+                'scrollZoom': True,
+                'showAxisDragHandles': False
+            }
         )
         return graph
 
