@@ -9,8 +9,8 @@ services:
     ports:
       - 8050:8050
     volumes:
-      - app:/workspace
-      - ~/.aws:/home/${USER}/.aws
+      - app:/home/vscode/workspace
+      - ~/.aws:/home/vscode/.aws
     tty: true
 
 volumes:
