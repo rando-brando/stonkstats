@@ -29,7 +29,7 @@ class StonkGraph(Graph):
         peg = {
             'fair': 15,
             'normal': 15,
-            'max': 15
+            'max': 30
         }
         dates = {
             'thisY': pd.to_datetime(self.estimates[2]['endDate']),
@@ -60,7 +60,7 @@ class StonkGraph(Graph):
         data = []
         if dates['thisY']:
             data.append({
-                'dates': dates['thisY'],
+                'date': dates['thisY'],
                 'growth': estimates[2]['growth'],
                 'avgEstimate': estimates[2]['earningsEstimate']['avg'],
                 'lowEstimate': estimates[2]['earningsEstimate']['low'],
@@ -68,7 +68,7 @@ class StonkGraph(Graph):
             })
         if dates['nextY']:
             data.append({
-                'dates': dates['nextY'],
+                'date': dates['nextY'],
                 'growth': estimates[3]['growth'],
                 'avgEstimate': estimates[3]['earningsEstimate']['avg'],
                 'lowEstimate': estimates[3]['earningsEstimate']['low'],
@@ -82,7 +82,7 @@ class StonkGraph(Graph):
                 rates = [growth['5Y']] * 5
             for rate in rates:
                 data.append({
-                    'dates': data[-1]['dates'] + offsets['1D'] + offsets['1Y'] - offsets['1D'],
+                    'date': data[-1]['date'] + offsets['1D'] + offsets['1Y'] - offsets['1D'],
                     'growth': rate,
                     'avgEstimate': data[-1]['avgEstimate'] * (1 + rate),
                     'lowEstimate': data[-1]['lowEstimate'] * (1 + rate),
