@@ -5,8 +5,8 @@ from stonkly.components.graph import StonkGraph
 
 @app.callback(
     Output('tab-content', 'children'),
-    Input('price-data', 'modified_timestamp'),
-    State('price-data', 'data'),
+    Input('prices-data', 'modified_timestamp'),
+    State('prices-data', 'data'),
     State('earnings-data', 'data'),
     State('estimates-data', 'data')
 )

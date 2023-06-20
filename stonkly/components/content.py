@@ -8,7 +8,7 @@ class Content:
             id='content-container',
             children=[
                 dcc.Store(
-                    id='price-data',
+                    id='prices-data',
                     storage_type='memory'
                 ),
                 dcc.Store(

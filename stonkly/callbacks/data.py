@@ -6,7 +6,7 @@ import os
 
 
 @app.callback(
-    Output('price-data', 'data'),
+    Output('prices-data', 'data'),
     Output('earnings-data', 'data'),
     Output('estimates-data', 'data'),
     Input('selected-option', 'data')
