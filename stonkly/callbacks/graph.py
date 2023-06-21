@@ -5,12 +5,9 @@ from stonkly.components.graph import StonkGraph
 
 @app.callback(
     Output('tab-content', 'children'),
-    Input('prices-data', 'modified_timestamp'),
-    State('prices-data', 'data'),
-    State('earnings-data', 'data'),
-    State('estimates-data', 'data')
+    Input('symbol-data', 'data')
 )
-def update_content(_, prices, earnings, estimates):
-    if prices:
-        graph = StonkGraph(prices, earnings, estimates)
+def update_content(data):
+    if data:
+        graph = StonkGraph(data)
         return graph.load()

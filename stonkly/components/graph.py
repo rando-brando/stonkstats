@@ -18,12 +18,12 @@ class Graph:
 
 
 class StonkGraph(Graph):
-    def __init__(self, prices=None, earnings=None, estimates=None):
+    def __init__(self, data=None):
         super().__init__()
         # default attributes
-        self.prices = prices
-        self.earnings = earnings
-        self.estimates = estimates
+        self.prices = data['prices']
+        self.earnings = data['earnings']
+        self.estimates = data['estimates']
         self.pe = None
         self.fpe = None
         peg = {
@@ -36,9 +36,9 @@ class StonkGraph(Graph):
             'nextY': pd.to_datetime(self.estimates[3]['endDate'])
         }
         growth = {
-            '0Y': estimates[2]['growth'],
-            '1Y': estimates[3]['growth'],
-            '5Y': estimates[4]['growth']
+            '0Y': self.estimates[2]['growth'],
+            '1Y': self.estimates[3]['growth'],
+            '5Y': self.estimates[4]['growth']
         }
         offsets = {
             '1D': pd.DateOffset(days=1),
@@ -55,24 +55,28 @@ class StonkGraph(Graph):
         self.earnings = pd.DataFrame(self.earnings).sort_values('date')
         self.earnings['date'] = pd.to_datetime(self.earnings['date'])
         self.earnings['epsTTM'] = self.earnings['actualEarningResult'].rolling(4).sum()
+        self.earnings['estNTM'] = self.earnings['estimatedEarning'].rolling(4).sum().shift(-4)
+        self.earnings['estimatedGrowth'] = self.earnings['estNTM'] / self.earnings['epsTTM'] - 1
+        self.earnings['epsNTM'] = self.earnings['epsTTM'].shift(-4)
+        self.earnings['actualGrowth'] = self.earnings['epsNTM'] / self.earnings['epsTTM'] - 1
 
         # estimates dataframe
         data = []
         if dates['thisY']:
             data.append({
                 'date': dates['thisY'],
-                'growth': estimates[2]['growth'],
-                'avgEstimate': estimates[2]['earningsEstimate']['avg'],
-                'lowEstimate': estimates[2]['earningsEstimate']['low'],
-                'highEstimate': estimates[2]['earningsEstimate']['high']
+                'growth': self.estimates[2]['growth'],
+                'avgEstimate': self.estimates[2]['earningsEstimate']['avg'],
+                'lowEstimate': self.estimates[2]['earningsEstimate']['low'],
+                'highEstimate': self.estimates[2]['earningsEstimate']['high']
             })
         if dates['nextY']:
             data.append({
                 'date': dates['nextY'],
-                'growth': estimates[3]['growth'],
-                'avgEstimate': estimates[3]['earningsEstimate']['avg'],
-                'lowEstimate': estimates[3]['earningsEstimate']['low'],
-                'highEstimate': estimates[3]['earningsEstimate']['high']
+                'growth': self.estimates[3]['growth'],
+                'avgEstimate': self.estimates[3]['earningsEstimate']['avg'],
+                'lowEstimate': self.estimates[3]['earningsEstimate']['low'],
+                'highEstimate': self.estimates[3]['earningsEstimate']['high']
             })
         if growth['5Y']:
             if growth['1Y']:

@@ -6,9 +6,7 @@ import os
 
 
 @app.callback(
-    Output('prices-data', 'data'),
-    Output('earnings-data', 'data'),
-    Output('estimates-data', 'data'),
+    Output('symbol-data', 'data'),
     Input('selected-option', 'data')
 )
 def update_data(symbol):
@@ -17,4 +15,9 @@ def update_data(symbol):
     prices = fmp.technical_chart(symbol)
     earnings = fmp.earnings_surprises(symbol)
     estimates = yq.Ticker(symbol).earnings_trend[symbol]['trend']
-    return [prices, earnings, estimates]
+    data = {
+        'prices': prices,
+        'earnings': earnings,
+        'estimates': estimates
+    }
+    return data

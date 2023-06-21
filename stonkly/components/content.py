@@ -8,23 +8,7 @@ class Content:
             id='content-container',
             children=[
                 dcc.Store(
-                    id='prices-data',
-                    storage_type='memory'
-                ),
-                dcc.Store(
-                    id='earnings-data',
-                    storage_type='memory'
-                ),
-                dcc.Store(
-                    id='estimates-data',
-                    storage_type='memory'
-                ),
-                dcc.Store(
-                    id='stats-data',
-                    storage_type='memory'
-                ),
-                dcc.Store(
-                    id='screener-data',
+                    id='symbol-data',
                     storage_type='memory'
                 ),
                 dbc.Tabs(
