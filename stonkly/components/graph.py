@@ -56,9 +56,9 @@ class StonkGraph(Graph):
         self.earnings['date'] = pd.to_datetime(self.earnings['date'])
         self.earnings['epsTTM'] = self.earnings['actualEarningResult'].rolling(4).sum()
         self.earnings['estNTM'] = self.earnings['estimatedEarning'].rolling(4).sum().shift(-4)
-        self.earnings['estimatedGrowth'] = self.earnings['estNTM'] / self.earnings['epsTTM'] - 1
+        self.earnings['estimatedGrowth'] = (self.earnings['estNTM'] - self.earnings['epsTTM']) / self.earnings['epsTTM'].abs()
         self.earnings['epsNTM'] = self.earnings['epsTTM'].shift(-4)
-        self.earnings['actualGrowth'] = self.earnings['epsNTM'] / self.earnings['epsTTM'] - 1
+        self.earnings['actualGrowth'] = (self.earnings['epsNTM'] - self.earnings['epsTTM']) / self.earnings['epsTTM'].abs()
 
         # estimates dataframe
         data = []
