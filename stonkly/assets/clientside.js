@@ -6,7 +6,7 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
                 var filteredData = df.filter(function(row) {
                     var search = query.toLowerCase()
                     var symbol = row.symbol.toLowerCase()
-                    var name = row.companyName.toLowerCase()
+                    var name = row.name.toLowerCase()
                     if (symbol.includes(search) || name.includes(search)) {
                         return row;
                     }
@@ -31,8 +31,8 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
                                     'type': 'Td',
                                     'namespace': 'dash_html_components',
                                     'props': {
-                                        'class': 'company',
-                                        'children': row.companyName
+                                        'class': 'name',
+                                        'children': row.name
                                     }
                                 },
                                 {
